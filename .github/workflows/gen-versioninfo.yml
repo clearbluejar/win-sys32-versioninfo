@@ -1,11 +1,8 @@
 name: Generate Version Info
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
+  workflow_dispatch:
+  
 jobs:
   generate_versioninfo:
     runs-on: windows-latest
