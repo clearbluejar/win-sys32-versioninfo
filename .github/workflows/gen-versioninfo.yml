@@ -16,8 +16,8 @@ jobs:
         $sys32 = "${ver}-versioninfo-system32.json"
         $sys32recurse = "${ver}-versioninfo-system32-recurse.json"        
         $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
-        Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 | Out-File $sys32
-        Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 | Out-File $sys32recurse
+        Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $sys32
+        Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $sys32recurse
         
 
     - name: Generate System32 Program Files VersionInfo
@@ -26,7 +26,7 @@ jobs:
          $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
          $allrecurse = "${ver}-versioninfo-system32-winprogiles-recurse.json"
          $allpaths_to_scan = "C:\Program*\Mi*","C:\Program*\Win*", "C:\Windows\System32\"
-         Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 | Out-File $allrecurse
+         Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $allrecurse
 
     # Upload Artifacts 
     - name: Upload VersionInfo Json
