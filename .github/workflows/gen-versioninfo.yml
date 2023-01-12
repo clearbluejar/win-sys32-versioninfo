@@ -9,6 +9,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
+    - name: Dumpbin
+      run: |
+       dumpbin
+        
 
     - name: Generate System32 VersionInfo
       run: |
