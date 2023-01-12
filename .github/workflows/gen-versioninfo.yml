@@ -12,7 +12,7 @@ jobs:
     
     - name: Dumpbin
       run: |
-       dumpbin
+        dumpbin
         
 
     - name: Generate System32 VersionInfo
