@@ -32,12 +32,12 @@ jobs:
 
     - name: Generate System32 Program Files VersionInfo
       run: |
-         $ver = [System.Environment]::OSVersion.Version -join '.'
-         $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
-         $allrecurse = "${ver}-versioninfo-system32-winprogiles-recurse.json"
-         $allpaths_to_scan = "C:\Program*\Mi*","C:\Program*\Win*", "C:\Windows\System32\", "C:\Program*\Common*"
-         Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $allrecurse
-         python enhance_verinfo.py $allrecurse
+        $ver = [System.Environment]::OSVersion.Version -join '.'
+        $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
+        $allrecurse = "${ver}-versioninfo-system32-winprogiles-recurse.json"
+        $allpaths_to_scan = "C:\Program*\Mi*","C:\Program*\Win*", "C:\Windows\System32\", "C:\Program*\Common*"
+        Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $allrecurse
+        python enhance_verinfo.py $allrecurse
 
     # Upload Artifacts 
     - name: Upload VersionInfo Json
