@@ -5,25 +5,29 @@ on:
   
 jobs:
   generate_versioninfo:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [windows-2019, windows-2022]
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
     - uses: ilammy/msvc-dev-cmd@v1
     
-    - name: Dumpbin
+    - name: install pip requirements
       run: |
-        dumpbin
+        pip install -r requirements.txt
         
 
-    - name: Generate System32 VersionInfo
-      run: |
-        $ver = [System.Environment]::OSVersion.Version -join '.'
-        $sys32 = "${ver}-versioninfo-system32.json"
-        $sys32recurse = "${ver}-versioninfo-system32-recurse.json"        
-        $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
-        Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $sys32
-        Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $sys32recurse
+    # - name: Generate System32 VersionInfo
+    #   run: |
+    #     $ver = [System.Environment]::OSVersion.Version -join '.'
+    #     $sys32 = "${ver}-versioninfo-system32.json"
+    #     $sys32recurse = "${ver}-versioninfo-system32-recurse.json"        
+    #     $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
+    #     Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $sys32
+    #     Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $sys32recurse
+    #     python enhance_verinfo.py $sys32recurse
         
 
     - name: Generate System32 Program Files VersionInfo
@@ -33,6 +37,7 @@ jobs:
          $allrecurse = "${ver}-versioninfo-system32-winprogiles-recurse.json"
          $allpaths_to_scan = "C:\Program*\Mi*","C:\Program*\Win*", "C:\Windows\System32\", "C:\Program*\Common*"
          Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $allrecurse
+         python enhance_verinfo.py $allrecurse
 
     # Upload Artifacts 
     - name: Upload VersionInfo Json
