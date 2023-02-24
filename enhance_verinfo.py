@@ -3,6 +3,17 @@ import json
 from pathlib import Path
 import argparse
 
+def get_microsoft_download_url(filename, timestamp, virtual_size):
+
+    assert filename is not None
+    assert timestamp is not None
+    assert virtual_size is not None
+
+    timestamp = format(timestamp, '08X')
+    virtual_size = format(virtual_size, 'X')
+
+    return f'https://msdl.microsoft.com/download/symbols/{filename}/{timestamp}{virtual_size}/{filename}'
+
 parser = argparse.ArgumentParser('Enhance VerInfo')
 
 parser.add_argument('files_json', help='File to enhance')
@@ -23,10 +34,12 @@ for i, file in enumerate(files):
         print(ex)
         continue
 
-    
+   
     file['timestamp'] = pe.FILE_HEADER.TimeDateStamp
     file['size'] = pe.OPTIONAL_HEADER.SizeOfImage
-    
+    file['machine'] = pe.FILE_HEADER.Machine
+
+    file['url'] = get_microsoft_download_url(file['Name'],file['timestamp'],file['size'])
 
     # only imports directory
     pe.parse_data_directories([1])
