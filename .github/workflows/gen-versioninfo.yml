@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - uses: ilammy/msvc-dev-cmd@v1
+    # - uses: ilammy/msvc-dev-cmd@v1
     
     - name: install pip requirements
       run: |
