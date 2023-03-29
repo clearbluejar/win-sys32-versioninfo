@@ -7,7 +7,7 @@ jobs:
   generate_versioninfo:
     strategy:
       matrix:
-        os: [windows-2019, windows-2022, win10-o365-label]
+        os: [windows-2019, windows-2022, win10-o365]
       fail-fast: false
     runs-on: ${{ matrix.os }}
 
