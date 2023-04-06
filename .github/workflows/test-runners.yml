@@ -1,0 +1,85 @@
+name: Generate Version Info
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  
+jobs:
+  generate_versioninfo:
+    strategy:
+      matrix:
+        os: [windows-2019, windows-2022]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3    
+    
+    - name: install pip requirements
+      run: |
+        pip install -r requirements.txt
+        
+    - name: Install NtObjectManager
+      run: |
+        Install-Module -Name NtObjectManager
+        Set-GlobalSymbolResolver -DbgHelpPath 'C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\dbghelp.dll'
+        
+    - name: Generate System32 Program Files VersionInfo
+      run: |
+
+        .\get_verinfo.ps1 ${{ matrix.os }} 50
+
+        #python enhance_verinfo.py $allrecurse
+
+    # Upload Artifacts 
+    - name: Upload VersionInfo Json
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: version-info-json
+        path: ./*.tar.gz
+  
+  collect-files: 
+    strategy:
+      matrix:
+        os: [windows-2019, windows-2022]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: tar files
+        run: |
+          $ver = [System.Environment]::OSVersion.Version -join '.'
+          $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
+          $allpaths_to_scan = "C:\Program*\Mi*","C:\Program*\Win*", "C:\Windows\System32\", "C:\Program*\Common*"
+          $all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue
+          $all_files_tar_path = "${{ matrix.os }}-${ver}-versioninfo.tar.gz"
+
+          tar -czf $all_files_tar_path $all_files
+
+      - name: Upload files
+        uses: actions/upload-artifact@v3        
+        with:
+          name: all_files
+          path: ./*json.tar.gz
+
+  gen-com-info:
+    strategy:
+      matrix:
+        os: [windows-2019, windows-2022]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+        
+    steps:
+      - name: gen com
+        run: |
+          $com_json_path = ${{ matrix.os }}.com.json
+          $all_com = gwmi Win32_COMSetting | ? {$_.InprocServer32 -or $_.LocalServer32 } | ConvertTo-Json | Out-File 
+          tar -czf (${{ matrix.os }}.com.json + 'tar.gz') ${{ matrix.os }}.com.json
+
+      - name: Upload files
+        uses: actions/upload-artifact@v3        
+        with:
+          name: com_info
+          path: ./*json.tar.gz
