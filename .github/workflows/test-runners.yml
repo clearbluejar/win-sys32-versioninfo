@@ -22,7 +22,8 @@ jobs:
         
     - name: Install NtObjectManager
       run: |
-        Install-Module -Name NtObjectManager
+        Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+        Install-Module -Name NtObjectManager -Force -Scope CurrentUser        
         Set-GlobalSymbolResolver -DbgHelpPath 'C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\dbghelp.dll'
         
     - name: Generate System32 Program Files VersionInfo
@@ -74,7 +75,7 @@ jobs:
     steps:
       - name: gen com
         run: |
-          $com_json_path = ${{ matrix.os }}.com.json
+          $com_json_path = "${{ matrix.os }}.com.json"
           $all_com = gwmi Win32_COMSetting | ? {$_.InprocServer32 -or $_.LocalServer32 } | ConvertTo-Json | Out-File 
           tar -czf (${{ matrix.os }}.com.json + 'tar.gz') ${{ matrix.os }}.com.json
 
