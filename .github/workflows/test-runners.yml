@@ -56,9 +56,10 @@ jobs:
           $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
           $allpaths_to_scan = "C:\Program*\Mi*","C:\Program*\Win*", "C:\Windows\System32\", "C:\Program*\Common*"
           $all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue
-          $all_files_tar_path = "${{ matrix.os }}-${ver}-versioninfo.tar.gz"     
+          $all_files_tar_path = "${{ matrix.os }}-${ver}-versioninfo.json.tar.gz"     
           # write file paths to list     
           $all_files | select -ExpandProperty fullname | Out-File all_paths.txt
+          echo taring $all_files.Count
           # tar all the things
           tar -czf $all_files_tar_path -T all_paths.txt
 
@@ -79,8 +80,8 @@ jobs:
       - name: gen com
         run: |
           $com_json_path = "${{ matrix.os }}.com.json"
-          $all_com = Get-CimInstance -ClassName Win32_COMSetting | ? {$_.InprocServer32 -or $_.LocalServer32 } | ConvertTo-Json | Out-File 
-          tar -czf (${{ matrix.os }}.com.json + 'tar.gz') ${{ matrix.os }}.com.json
+          $all_com = Get-CimInstance -ClassName Win32_COMSetting | ? {$_.InprocServer32 -or $_.LocalServer32 } | ConvertTo-Json | Out-File $com_json_path
+          tar -czf ($com_json_path + 'tar.gz') $com_json_path
 
       - name: Upload files
         uses: actions/upload-artifact@v3        
