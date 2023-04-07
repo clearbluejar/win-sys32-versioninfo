@@ -2,6 +2,10 @@ import pefile
 import json
 from pathlib import Path
 import argparse
+import concurrent.futures
+from multiprocessing import cpu_count
+
+MAX_WORKERS = cpu_count()
 
 def get_microsoft_download_url(filename, timestamp, virtual_size):
 
@@ -14,26 +18,16 @@ def get_microsoft_download_url(filename, timestamp, virtual_size):
 
     return f'https://msdl.microsoft.com/download/symbols/{filename}/{timestamp}{virtual_size}/{filename}'
 
-parser = argparse.ArgumentParser('Enhance VerInfo')
-
-parser.add_argument('files_json', help='File to enhance')
-
-args = parser.parse_args()
-
-file_json_path = Path(args.files_json)
-new_file_json_path = Path(file_json_path.name.split(file_json_path.suffix)[0] + '.enhanced' + file_json_path.suffix)
-
-files = json.loads(file_json_path.read_bytes())
-
-for i, file in enumerate(files):
-    print(f"{int(i / len(files) * 100)}% : {file['Name']} ")
-
+def enhance_file(file: dict):
+    
     try:
         pe = pefile.PE(file['VersionInfo']['FileName'], fast_load=True)
     except pefile.PEFormatError as ex:
         print(ex)
-        continue
-
+        
+    if not pe:
+        print(f"Error parsing PE for {file['Name']}")
+        return file['Name']
    
     file['timestamp'] = pe.FILE_HEADER.TimeDateStamp
     file['size'] = pe.OPTIONAL_HEADER.SizeOfImage
@@ -45,7 +39,7 @@ for i, file in enumerate(files):
     pe.parse_data_directories([1])
 
     if not hasattr(pe, 'DIRECTORY_ENTRY_IMPORT'):
-        continue
+        return file['Name']
     
     import_dlls = []
     imports_funcs = []
@@ -59,5 +53,28 @@ for i, file in enumerate(files):
     file['import_dlls'] = import_dlls
     file['import_funcs'] = imports_funcs
 
+    return file['Name']
+
+parser = argparse.ArgumentParser('Enhance VerInfo')
+
+parser.add_argument('verinfo', help='verinfo json')
+parser.add_argument('output', help='output file')
+
+args = parser.parse_args()
+
+file_json_path = Path(args.verinfo)
+new_file_json_path = Path(args.output)
+
+files = json.loads(file_json_path.read_bytes())
+
+count = 0 
+with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    futures = (executor.submit(enhance_file, files[sha256]) for sha256 in files)
     
-new_file_json_path.write_text(json.dumps(files, indent=4))
+    for future in concurrent.futures.as_completed(futures):
+        count += 1        
+        name = future.result()
+        print(f"{int(count / len(files) * 100)}% : {name} ")
+
+        
+new_file_json_path.write_text(json.dumps(files))

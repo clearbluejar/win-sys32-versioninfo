@@ -30,7 +30,7 @@ jobs:
     - name: Generate System32 Program Files VersionInfo
       run: |
 
-        .\get_verinfo.ps1 ${{ matrix.os }} 50
+        .\get_verinfo.ps1 ${{ matrix.os }}
 
         #python enhance_verinfo.py $allrecurse
 
@@ -41,6 +41,7 @@ jobs:
       with:
         name: version-info-json
         path: ./*.tar.gz
+        retention-days: 5 
   
   collect-files: 
     strategy:
@@ -68,6 +69,7 @@ jobs:
         with:
           name: all_files
           path: ./*json.tar.gz
+          retention-days: 5 
 
   gen-com-info:
     strategy:
@@ -81,10 +83,11 @@ jobs:
         run: |
           $com_json_path = "${{ matrix.os }}.com.json"
           $all_com = Get-CimInstance -ClassName Win32_COMSetting | ? {$_.InprocServer32 -or $_.LocalServer32 } | ConvertTo-Json | Out-File $com_json_path
-          tar -czf ($com_json_path + 'tar.gz') $com_json_path
+          tar -czf ($com_json_path + '.tar.gz') $com_json_path
 
       - name: Upload files
         uses: actions/upload-artifact@v3        
         with:
           name: com_info
-          path: ./*json.tar.gz
+          path: ./*tar.gz
+          retention-days: 5 

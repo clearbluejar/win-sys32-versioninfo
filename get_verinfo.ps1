@@ -73,6 +73,7 @@ $all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -Error
 
 $jsonBase = @{}
 $allverinfo_json_path = "${runner}-${ver}-versioninfo.json"
+$allverinfo_json_enchanced_path = "${runner}-${ver}-versioninfo.enchanced.json"
 $has_getrpc = (Get-Command 'Get-RpcServer' -errorAction SilentlyContinue)
 
 Write-Host has get-rpc $has_getrpc
@@ -97,7 +98,6 @@ foreach ($file in $all_files) {
         $file_data = @{}
         $sha256 = ($file | Get-FileHash).Hash
         Write-Host $sha256
-        $verinfo = $file | select  Name,VersionInfo
         $acl = $file | Get-Acl 
         $acl_access = $acl.Access
         $acl = $acl | select Owner,Group,Sddl,AccessToString,Audit
@@ -114,17 +114,21 @@ foreach ($file in $all_files) {
         }
 
         
-        $file_data.Add("verinfo", $verinfo)
+        $file_data.Add("VersionInfo", $file.VersionInfo)
         $file_data.Add("acl", $acl)
         $file_data.Add("rpc", $rpc_info)
         $file_data.Add("isparentuserwriteable", $is_parent_user_writeable)
         $file_data.Add("parentfolder",$file.Directory.fullname)
+        $file_data.Add("Name",$file.Name)
+
         $jsonBase.Add($sha256, $file_data)
       }
 
 Write-Host writing json...
 Write-Host $jsonBase.Count objects
-$jsonBase | ConvertTo-Json -Depth 3 | Out-File $allverinfo_json_path
+$jsonBase | ConvertTo-Json -Depth 3 | Out-File $allverinfo_json_path 
+
+python .\enhance_verinfo.py $allverinfo_json_path $allverinfo_json_enchanced_path
 
 # tar.gz json
-tar czf ($allverinfo_json_path + '.tar.gz') $allverinfo_json_path
+tar czf ($allverinfo_json_enchanced_path + '.tar.gz') $allverinfo_json_enchanced_path
