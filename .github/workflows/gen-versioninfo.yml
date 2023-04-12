@@ -30,14 +30,15 @@ jobs:
     #     Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $sys32recurse
     #     python enhance_verinfo.py $sys32recurse
         
+    - name: Generate Proc Info
+      run: |
 
+        .\gen_process.ps1 ${{ matrix.os }}
+        
     - name: Generate System32 Program Files VersionInfo
       run: |
-        $ver = [System.Environment]::OSVersion.Version -join '.'
-        $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
-        $allrecurse = "${{ matrix.os }}-${ver}-versioninfo-system32-winprogiles-recurse.json"
-        $allpaths_to_scan = "C:\Program*\Mi*","C:\Program*\Win*", "C:\Windows\System32\", "C:\Program*\Common*"
-        Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $allrecurse
+
+
         python enhance_verinfo.py $allrecurse
 
     # Upload Artifacts 

@@ -65,15 +65,16 @@ function isWriteableByIdentStr([System.Security.AccessControl.AuthorizationRuleC
 
 $runner=$args[0]
 $limit=$args[1]
+Write-Host Starting: Collecting files...
 $ver = [System.Environment]::OSVersion.Version -join '.'
 $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
-$allpaths_to_scan = "C:\Program*\Mi*","C:\Program*\Win*", "C:\Windows\System32\", "C:\Program*\Common*"
+$allpaths_to_scan = "C:\Windows\System32\","C:\Program*\Mi*","C:\Program*\Win*","C:\Program*\Common*"
 $all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue
 
 
 $jsonBase = @{}
 $allverinfo_json_path = "${runner}-${ver}-versioninfo.json"
-$allverinfo_json_enchanced_path = "${runner}-${ver}-versioninfo.enchanced.json"
+$allverinfo_json_enhanced_path = "${runner}-${ver}-versioninfo.enhanced.json"
 $has_getrpc = (Get-Command 'Get-RpcServer' -errorAction SilentlyContinue)
 
 Write-Host has get-rpc $has_getrpc
@@ -97,6 +98,13 @@ foreach ($file in $all_files) {
         Write-Host complete '%' ($count / $all_files.Count)        
         $file_data = @{}
         $sha256 = ($file | Get-FileHash).Hash
+
+        if ($jsonBase.ContainsKey($sha256))
+        {
+          Write-Host Skipping $sha256.. already added
+          continue
+        }
+
         Write-Host $sha256
         $acl = $file | Get-Acl 
         $acl_access = $acl.Access
@@ -122,13 +130,16 @@ foreach ($file in $all_files) {
         $file_data.Add("Name",$file.Name)
 
         $jsonBase.Add($sha256, $file_data)
+        
       }
 
-Write-Host writing json...
+Write-Host writing versioninfo json...
 Write-Host $jsonBase.Count objects
 $jsonBase | ConvertTo-Json -Depth 3 | Out-File $allverinfo_json_path 
 
-python .\enhance_verinfo.py $allverinfo_json_path $allverinfo_json_enchanced_path
+$proc_json_path = "${runner}-${ver}-proc.json"
+
+python .\enhance_verinfo.py $allverinfo_json_path $proc_json_path $allverinfo_json_enhanced_path
 
 # tar.gz json
-tar czf ($allverinfo_json_enchanced_path + '.tar.gz') $allverinfo_json_enchanced_path
+tar czf ($allverinfo_json_enhanced_path + '.tar.gz') $allverinfo_json_enhanced_path
