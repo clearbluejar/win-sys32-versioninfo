@@ -9,7 +9,7 @@ jobs:
   generate_versioninfo:
     strategy:
       matrix:
-        os: [windows-2019, windows-2022]
+        os: [windows-2019, windows-2022, win10-o365,win2022-azure-roles]
       fail-fast: false
     runs-on: ${{ matrix.os }}
 
@@ -30,7 +30,7 @@ jobs:
     - name: Generate Proc Info
       run: |
 
-        .\gen_process.ps1 ${{ matrix.os }}
+        .\gen_process.ps1 ${{ matrix.os }} 200
    
     - name: Generate System32 Program Files VersionInfo
       run: |
@@ -77,7 +77,7 @@ jobs:
   gen-com-info:
     strategy:
       matrix:
-        os: [windows-2019, windows-2022]
+        os: [windows-2019, windows-2022, win10-o365,win2022-azure-roles]
       fail-fast: false
     runs-on: ${{ matrix.os }}
         
