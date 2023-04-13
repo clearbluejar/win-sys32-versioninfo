@@ -49,13 +49,13 @@ def enhance_file(file: dict, proc_files, modules):
         file['parentCommand'] = list(set(file['parentCommand']))
 
             
-        
+    pe = None    
     try:
         pe = pefile.PE(file['VersionInfo']['FileName'], fast_load=True)
     except pefile.PEFormatError as ex:
         print(ex)
         
-    if not pe:
+    if pe is None:
         print(f"Error parsing PE for {file['Name']}")
         return file['Name']
    
