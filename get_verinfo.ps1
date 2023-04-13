@@ -64,7 +64,8 @@ function isWriteableByIdentStr([System.Security.AccessControl.AuthorizationRuleC
 ### end utility
 
 $runner=$args[0]
-$limit=$args[1]
+$paths=$args[1]
+$limit=$args[2]
 Write-Host Starting: Collecting files...
 $ver = [System.Environment]::OSVersion.Version -join '.'
 $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
@@ -74,7 +75,7 @@ $allpaths_to_scan = "C:\Windows\System32\","C:\Program*\Mi*","C:\Program*\Win*",
 Write-Host Starting: Collecting files...
 Write-Host folders: $allpaths_to_scan
 
-$all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo,Directory,@{n='Hash'; e={(Get-FileHash -Path $_.FullName).Hash}} 
+$all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo,Directory
 
 $jsonBase = @{}
 $allverinfo_json_path = "${runner}-${ver}-versioninfo.json"
@@ -100,16 +101,15 @@ foreach ($file in $all_files) {
 
         $count++
         Write-Host $file
-        Write-Host complete '%' ($count / $all_files.Count)        
-        $sha256 = $file.Hash
+        Write-Host complete '%' ($count / $all_files.Count)       
+        $key = $file.VersionInfo.FileName
 
-        if ($jsonBase.ContainsKey($sha256))
+        if ($jsonBase.ContainsKey($key))
         {
-          Write-Host Skipping $sha256.. already added
+          Write-Host Skipping $key .. already added
           continue
         }
-
-        Write-Host $sha256
+        
         $acl = $file | Get-Acl 
         $acl_access = $acl.Access
         $acl = $acl | select Owner,Group,Sddl,AccessToString,Audit
@@ -134,7 +134,7 @@ foreach ($file in $all_files) {
         $file_data.Add("parentfolder",$file.Directory.fullname)
         $file_data.Add("Name",$file.Name)
 
-        $jsonBase.Add($sha256, $file_data)
+        $jsonBase.Add($key, $file_data)
         
 }
 
