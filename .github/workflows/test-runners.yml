@@ -1,4 +1,4 @@
-name: Generate Version Info
+name: Test Run 200 - Generate Version Info
 
 on:
   workflow_dispatch:
