@@ -18,8 +18,8 @@ jobs:
     
     - name: install pip requirements
       run: |
-      # ((Test-Path "$($env:ProgramData)\chocolatey\choco.exe")); if ($? -eq $true) {echo asdfasdf}choco install pip
-      pip install -r requirements.txt
+        # ((Test-Path "$($env:ProgramData)\chocolatey\choco.exe"));# if ($? -eq $true) {echo asdfasdf}choco install pip
+        pip install -r requirements.txt
         
     # - name: Install PS Modules
     #   run: |
