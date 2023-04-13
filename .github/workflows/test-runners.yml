@@ -16,6 +16,20 @@ jobs:
     steps:
     - uses: actions/checkout@v3    
     
+    - run: Set-MpPreference -DisableRealtimeMonitoring $true      
+      shell: powershell
+      
+    - name: Get machine info
+      run: | 
+        # Get OS information
+        Get-CimInstance -Class Win32_OperatingSystem
+        # Get Hard Disk Volumes
+        Get-CimInstance -Class Win32_volume
+        # Get Memory
+        Get-CimInstance -Class Win32_physicalMemory
+        # And Get CPU
+        Get-CimInstance -Class Win32_Processor
+    
     - name: install pip requirements
       run: |
         # ((Test-Path "$($env:ProgramData)\chocolatey\choco.exe"));# if ($? -eq $true) {echo asdfasdf}choco install pip
