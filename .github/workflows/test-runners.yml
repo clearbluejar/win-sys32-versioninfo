@@ -18,25 +18,26 @@ jobs:
     
     - name: install pip requirements
       run: |
-        pip install -r requirements.txt
+      # ((Test-Path "$($env:ProgramData)\chocolatey\choco.exe")); if ($? -eq $true) {echo asdfasdf}choco install pip
+      pip install -r requirements.txt
         
-    - name: Install NtObjectManager
-      run: |
-        # Set-PSRepository PSGallery -InstallationPolicy Trusted
-        # Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
-        Install-PackageProvider -Name NuGet -Force
-        Install-Module -Name NtObjectManager -Force -Scope CurrentUser        
-        Set-GlobalSymbolResolver -DbgHelpPath 'C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\dbghelp.dll'
+    # - name: Install PS Modules
+    #   run: |
+    #     # Set-PSRepository PSGallery -InstallationPolicy Trusted
+    #     # Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+    #     Install-PackageProvider -Name NuGet -Force
+    #     Install-Module -Name NtObjectManager -Force -Scope CurrentUser        
+    #     Set-GlobalSymbolResolver -DbgHelpPath 'C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\dbghelp.dll'
 
     - name: Generate Proc Info
       run: |
 
-        .\gen_process.ps1 ${{ matrix.os }} 200
+        .\gen_process.ps1 ${{ matrix.os }} 
    
     - name: Generate System32 Program Files VersionInfo
       run: |
 
-        .\get_verinfo.ps1 ${{ matrix.os }}
+        .\get_verinfo.ps1 ${{ matrix.os }} 200
 
     # Upload Artifacts 
     - name: Upload VersionInfo Json

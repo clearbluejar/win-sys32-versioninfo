@@ -18,12 +18,12 @@ jobs:
       run: |
         pip install -r requirements.txt
         
-    - name: Install NtObjectManager
-      run: |
-        # Set-PSRepository PSGallery -InstallationPolicy Trusted
-        # Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
-        Install-Module -Name NtObjectManager -Force -Scope CurrentUser  -Confirm:$false 
-        Set-GlobalSymbolResolver -DbgHelpPath 'C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\dbghelp.dll'
+    # - name: Install PS Modules
+    #   run: |
+    #     # Set-PSRepository PSGallery -InstallationPolicy Trusted
+    #     # Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+    #     Install-Module -Name NtObjectManager -Force -Scope CurrentUser  -Confirm:$false 
+    #     Set-GlobalSymbolResolver -DbgHelpPath 'C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\dbghelp.dll'
         
     - name: Generate Proc Info
       run: |
