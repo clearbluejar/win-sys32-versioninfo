@@ -13,22 +13,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    # - uses: ilammy/msvc-dev-cmd@v1
     
     - name: install pip requirements
       run: |
         pip install -r requirements.txt
         
-
-    # - name: Generate System32 VersionInfo
-    #   run: |
-    #     $ver = [System.Environment]::OSVersion.Version -join '.'
-    #     $sys32 = "${ver}-versioninfo-system32.json"
-    #     $sys32recurse = "${ver}-versioninfo-system32-recurse.json"        
-    #     $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
-    #     Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $sys32
-    #     Get-ChildItem "C:\Windows\system32\*" -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo | ConvertTo-Json -depth 100 -Compress | Out-File $sys32recurse
-    #     python enhance_verinfo.py $sys32recurse
+    - name: Install NtObjectManager
+      run: |
+        # Set-PSRepository PSGallery -InstallationPolicy Trusted
+        # Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+        Install-Module -Name NtObjectManager -Force -Scope CurrentUser        
+        Set-GlobalSymbolResolver -DbgHelpPath 'C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\dbghelp.dll'
         
     - name: Generate Proc Info
       run: |
@@ -38,8 +33,7 @@ jobs:
     - name: Generate System32 Program Files VersionInfo
       run: |
 
-
-        python enhance_verinfo.py $allrecurse
+        .\get_verinfo.ps1 ${{ matrix.os }}
 
     # Upload Artifacts 
     - name: Upload VersionInfo Json
@@ -47,4 +41,55 @@ jobs:
       if: always()
       with:
         name: version-info-json
-        path: ./*.json
+        path: ./*.tar.gz
+        retention-days: 5 
+  
+  # collect-files: 
+  #   strategy:
+  #     matrix:
+  #       os: [windows-2019, windows-2022]
+  #     fail-fast: false
+  #   runs-on: ${{ matrix.os }}
+
+  #   steps:
+  #     - name: tar files
+  #       run: |
+  #         $ver = [System.Environment]::OSVersion.Version -join '.'
+  #         $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
+  #         $allpaths_to_scan = "C:\Program*\Mi*","C:\Program*\Win*", "C:\Windows\System32\", "C:\Program*\Common*"
+  #         $all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue
+  #         $all_files_tar_path = "${{ matrix.os }}-${ver}-versioninfo.json.tar.gz"     
+  #         # write file paths to list     
+  #         $all_files | select -ExpandProperty fullname | Out-File all_paths.txt
+  #         echo taring $all_files.Count
+  #         # tar all the things
+  #         tar -czf $all_files_tar_path -T all_paths.txt
+
+  #     - name: Upload files
+  #       uses: actions/upload-artifact@v3        
+  #       with:
+  #         name: all_files
+  #         path: ./*json.tar.gz
+  #         retention-days: 5 
+
+  gen-com-info:
+    strategy:
+      matrix:
+        os: [windows-2019, windows-2022, win10-o365,win2022-azure-roles]
+      
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+        
+    steps:
+      - name: gen com
+        run: |
+          $com_json_path = "${{ matrix.os }}.com.json"
+          $all_com = Get-CimInstance -ClassName Win32_COMSetting | ? {$_.InprocServer32 -or $_.LocalServer32 } | ConvertTo-Json | Out-File $com_json_path
+          tar -czf ($com_json_path + '.tar.gz') $com_json_path
+
+      - name: Upload files
+        uses: actions/upload-artifact@v3        
+        with:
+          name: com_info
+          path: ./*tar.gz
+          retention-days: 5 
