@@ -69,8 +69,12 @@ Write-Host Starting: Collecting files...
 $ver = [System.Environment]::OSVersion.Version -join '.'
 $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
 $allpaths_to_scan = "C:\Windows\System32\","C:\Program*\Mi*","C:\Program*\Win*","C:\Program*\Common*"
-$all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue
 
+
+Write-Host Starting: Collecting files...
+Write-Host folders: $allpaths_to_scan
+
+$all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo,Directory,@{n='Hash'; e={(Get-FileHash -Path $_.FullName).Hash}} 
 
 $jsonBase = @{}
 $allverinfo_json_path = "${runner}-${ver}-versioninfo.json"
@@ -83,6 +87,7 @@ Write-Host processing $all_files.Count
 $skip_rpc_files = "dpnaddr.dll"
 
 $count = 0
+
 foreach ($file in $all_files) {
 
         # break after limit
@@ -96,8 +101,7 @@ foreach ($file in $all_files) {
         $count++
         Write-Host $file
         Write-Host complete '%' ($count / $all_files.Count)        
-        $file_data = @{}
-        $sha256 = ($file | Get-FileHash).Hash
+        $sha256 = $file.Hash
 
         if ($jsonBase.ContainsKey($sha256))
         {
@@ -110,6 +114,7 @@ foreach ($file in $all_files) {
         $acl_access = $acl.Access
         $acl = $acl | select Owner,Group,Sddl,AccessToString,Audit
         $is_parent_user_writeable = isWriteableByIdentStr (($file.Directory | Get-Acl).Access) ".*USERS|EVERYONE"
+        
         if ($has_getrpc) 
         {
             if (-Not $skip_rpc_files.contains($file.Name)) 
@@ -121,7 +126,7 @@ foreach ($file in $all_files) {
             }
         }
 
-        
+        $file_data = @{}        
         $file_data.Add("VersionInfo", $file.VersionInfo)
         $file_data.Add("acl", $acl)
         $file_data.Add("rpc", $rpc_info)
@@ -131,7 +136,7 @@ foreach ($file in $all_files) {
 
         $jsonBase.Add($sha256, $file_data)
         
-      }
+}
 
 Write-Host writing versioninfo json...
 Write-Host $jsonBase.Count objects
