@@ -9,7 +9,11 @@ jobs:
   generate_versioninfo:
     strategy:
       matrix:
-        os: [windows-2019, windows-2022, win10-o365,win2022-azure-roles]
+        os: [windows-2019, windows-2022]
+        # need to separate by jobs
+        # include:
+        #   - os: [windows-2019, windows-2022]
+        #     paths: [ "C:\\Windows\\System32\\", "C:\\Program*\\Common*"]
       fail-fast: false
     runs-on: ${{ matrix.os }}
 
@@ -48,9 +52,9 @@ jobs:
 
         .\gen_process.ps1 ${{ matrix.os }} 
    
+    # - if: ${{ matrix.paths }}
     - name: Generate System32 Program Files VersionInfo
       run: |
-
         .\get_verinfo.ps1 ${{ matrix.os }} 200
 
     # Upload Artifacts 

@@ -66,16 +66,23 @@ function isWriteableByIdentStr([System.Security.AccessControl.AuthorizationRuleC
 $runner=$args[0]
 $paths=$args[1]
 $limit=$args[2]
-Write-Host Starting: Collecting files...
+
 $ver = [System.Environment]::OSVersion.Version -join '.'
 $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
-$allpaths_to_scan = "C:\Windows\System32\","C:\Program*\Mi*","C:\Program*\Win*","C:\Program*\Common*"
+
+if ($paths)
+{
+  $allpaths_to_scan = $paths
+}
+else {
+  $allpaths_to_scan = "C:\Windows\System32\","C:\Program*\Mi*","C:\Program*\Win*","C:\Program*\Common*"
+}
 
 
 Write-Host Starting: Collecting files...
 Write-Host folders: $allpaths_to_scan
 
-$all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo,Directory
+$all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue | select  Name,VersionInfo,DirectoryName,PSPath,FullName
 
 $jsonBase = @{}
 $allverinfo_json_path = "${runner}-${ver}-versioninfo.json"
@@ -84,6 +91,7 @@ $has_getrpc = (Get-Command 'Get-RpcServer' -errorAction SilentlyContinue)
 
 Write-Host has get-rpc $has_getrpc
 Write-Host processing $all_files.Count
+Write-Host limit: $limit
 # these files cause a block when processed with get-rpc
 $skip_rpc_files = "dpnaddr.dll"
 
@@ -100,20 +108,21 @@ foreach ($file in $all_files) {
         }
 
         $count++
-        Write-Host $file
+        Write-Host $file.FullName
         Write-Host complete '%' ($count / $all_files.Count)       
-        $key = $file.VersionInfo.FileName
+        $key = ($file | Get-FileHash).Hash
 
         if ($jsonBase.ContainsKey($key))
         {
           Write-Host Skipping $key .. already added
           continue
         }
+        Write-Host $key
         
         $acl = $file | Get-Acl 
         $acl_access = $acl.Access
         $acl = $acl | select Owner,Group,Sddl,AccessToString,Audit
-        $is_parent_user_writeable = isWriteableByIdentStr (($file.Directory | Get-Acl).Access) ".*USERS|EVERYONE"
+        $is_parent_user_writeable = isWriteableByIdentStr (($file.DirectoryName | Get-Acl).Access) ".*USERS|EVERYONE"
         
         if ($has_getrpc) 
         {
