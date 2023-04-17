@@ -55,7 +55,7 @@ jobs:
     # - if: ${{ matrix.paths }}
     - name: Generate System32 Program Files VersionInfo
       run: |
-        .\get_verinfo.ps1 ${{ matrix.os }} 200
+        .\get_verinfo.ps1 ${{ matrix.os }} C:\ 200
 
     # Upload Artifacts 
     - name: Upload VersionInfo Json
