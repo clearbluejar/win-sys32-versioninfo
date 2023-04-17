@@ -107,7 +107,7 @@ for proc,info in procs.items():
     proc_files.setdefault(info['path'], []).append(info)
     if info['modules']:
         for module in info['modules']:
-            print(module)
+            #print(module)
             mod_info = { 'parent': info['path'], 'parentUser': info['username'], 'parentCommand' : info['commandline'] }
             modules.setdefault(module['FileName'], []).append(mod_info)
 
