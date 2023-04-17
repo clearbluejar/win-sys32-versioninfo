@@ -73,11 +73,11 @@ $start_time = $(get-date)
 $ver = [System.Environment]::OSVersion.Version -join '.'
 $bin_types = "*.exe", "*.dll", "*.sys", "*.winmd", "*.cpl", "*.ax", "*.node", "*.ocx", "*.efi", "*.acm", "*.scr", "*.tsp", "*.drv"
 
-if ($paths) {
-  $allpaths_to_scan = $paths
+if ($paths -eq $null -or $paths -eq "all") {
+  $allpaths_to_scan = "C:\Windows\System32\", "C:\Program Files (x86)\Mi*", "C:\Program Files (x86)\Win*", "C:\Program Files\Mi*", "C:\Program Files\Win*", "C:\Program*\Common*"
 }
 else {
-  $allpaths_to_scan = "C:\Windows\System32\", "C:\Program Files (x86)\Mi*", "C:\Program Files (x86)\Win*", "C:\Program Files\Mi*", "C:\Program Files\Win*", "C:\Program*\Common*"
+  $allpaths_to_scan = $paths
 }
 
 Write-Host Starting: Collecting files...
@@ -91,7 +91,6 @@ $has_getrpc = (Get-Command 'Get-RpcServer' -errorAction SilentlyContinue)
 $cpu_count = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
 
 Write-Host has get-rpc $has_getrpc
-Write-Host processing $all_files.Count
 Write-Host limit: $limit
 Write-Host cpus: $cpu_count
 # these files cause a block when processed with get-rpc
@@ -104,7 +103,6 @@ Remove-Job -Force *
 $all_files = gci -Recurse -include $bin_types $allpaths_to_scan -ErrorAction SilentlyContinue | select  Name, VersionInfo, DirectoryName, PSPath, FullName
 
 $gci_time = $(get-date) - $start_time
-
 $job_file_count = [math]::Max(2000, $all_files.Count)
 $max_jobs = 4 * $cpu_count
 $min_jobs = $cpu_count * 2
@@ -225,7 +223,6 @@ while(($now_running = (Get-Job | Where-Object {$_.State -ne "Completed"}).Count)
     Get-Job | Where-Object { $_.State -eq 'Running' }
     
     Write-Host Jobs complete (Get-Job | Where-Object {$_.State -eq "Completed"}).Count / $running.Count
-    Write-Host Jobs complete  ((Get-Job | Where-Object {$_.State -eq "Completed"}).Count / $running.Count) * 100
     Write-Host Time since for file proc jobs.. ($(get-date) - $jobs_start)
     Start-Sleep -Seconds 5
 }
