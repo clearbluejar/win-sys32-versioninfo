@@ -100,7 +100,32 @@ $count = 0
 # clear jobs
 Remove-Job -Force *
 
-$all_files = gci -Recurse -include $bin_types $allpaths_to_scan -ErrorAction SilentlyContinue | select  Name, VersionInfo, DirectoryName, PSPath, FullName
+foreach ($path in $allpaths_to_scan) {
+
+  Start-Job  {
+      gci -Recurse -include $using:bin_types $using:path -ErrorAction SilentlyContinue | select  Name, VersionInfo, DirectoryName, PSPath, FullName      
+  }
+}
+
+$running = @(Get-Job | Where-Object { $_.State -eq 'Running' })
+Write-Host Waiting for all $running.Count jobs...
+$jobs_start = $(get-date)
+while(($now_running = (Get-Job | Where-Object {$_.State -ne "Completed"}).Count) -gt 0)
+{    
+    Get-Job | Where-Object { $_.State -eq 'Running' }
+    
+    Write-Host Jobs complete $now_running  / $running.Count
+    Write-Host Time since for file proc jobs.. ($(get-date) - $jobs_start)
+    Start-Sleep -Seconds 5
+}
+$jobs_end = $(get-date)
+
+# Wait for all jobs to complete and results ready to be received
+Wait-Job * | Out-Null
+
+$all_files = Receive-Job *
+
+#$all_files = gci -Recurse -include $bin_types $allpaths_to_scan -ErrorAction SilentlyContinue | select  Name, VersionInfo, DirectoryName, PSPath, FullName
 
 $gci_time = $(get-date) - $start_time
 $job_file_count = [math]::Max(2000, $all_files.Count)
@@ -113,6 +138,7 @@ $num_jobs = [math]::Max($min_jobs,$num_jobs)
 $job_file_count = [math]::Ceiling($all_files.count / $num_jobs)
 
 Write-Host All files count $all_files.count
+Write-Host GCI time: $gci_time
 Write-Host Max jobs: $max_jobs
 Write-Host Num jobs: $num_jobs
 Write-Host Job file count : $job_file_count
