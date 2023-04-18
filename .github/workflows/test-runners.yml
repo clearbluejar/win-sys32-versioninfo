@@ -52,7 +52,7 @@ jobs:
           # start as many things as possible
           $skip = ,"McpManagementService","McpManagementService (McpManagementService)"
           get-process
-          Stop-Process -Name "devicecensus" -Force
+          Stop-Process -Name "devicecensus" -Force -ErrorAction SilentlyContinue
           Get-Service -ErrorAction SilentlyContinue | % { start-job -name $_.Name -ArgumentList @($_, $skip) -ScriptBlock { $service=$args[0];$skip=$args[1]; echo $service.Name; if ($skip.Contains($service.Name)) { continue }; Start-Service $service -ErrorAction SilentlyContinue} }   
           Get-Job
           sleep 30
