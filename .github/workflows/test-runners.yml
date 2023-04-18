@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-  
+
 jobs:
   generate_versioninfo:
     strategy:
@@ -18,56 +18,58 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3    
-    
-    - run: Set-MpPreference -DisableRealtimeMonitoring $true      
-      shell: powershell
-      
-    - name: Get machine info
-      run: | 
-        # Get OS information
-        Get-CimInstance -Class Win32_OperatingSystem
-        # Get Hard Disk Volumes
-        Get-CimInstance -Class Win32_volume
-        # Get Memory
-        Get-CimInstance -Class Win32_physicalMemory
-        # And Get CPU
-        Get-CimInstance -Class Win32_Processor
-    
-    - name: install pip requirements
-      run: |
-        # ((Test-Path "$($env:ProgramData)\chocolatey\choco.exe"));# if ($? -eq $true) {echo asdfasdf}choco install pip
-        pip install -r requirements.txt
-        
-    # - name: Install PS Modules
-    #   run: |
-    #     # Set-PSRepository PSGallery -InstallationPolicy Trusted
-    #     # Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
-    #     Install-PackageProvider -Name NuGet -Force
-    #     Install-Module -Name NtObjectManager -Force -Scope CurrentUser        
-    #     Set-GlobalSymbolResolver -DbgHelpPath 'C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\dbghelp.dll'
+      - uses: actions/checkout@v3
 
-    - name: Generate Proc Info
-      run: |
-        # start as many things as possible
-        Get-Service | Start-Service  -ea SilentlyContinue
-        .\gen_process.ps1 ${{ matrix.os }} 
-   
-    # - if: ${{ matrix.paths }}
-    - name: Generate System32 Program Files VersionInfo
-      run: |
-        .\get_verinfo.ps1 ${{ matrix.os }} all 200
+      - run: Set-MpPreference -DisableRealtimeMonitoring $true
+        shell: powershell
 
-    # Upload Artifacts 
-    - name: Upload VersionInfo Json
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: version-info-json
-        path: ./*.tar.gz
-        retention-days: 5 
-  
-  # collect-files: 
+      - name: Get machine info
+        run: |
+          # Get OS information
+          Get-CimInstance -Class Win32_OperatingSystem
+          # Get Hard Disk Volumes
+          Get-CimInstance -Class Win32_volume
+          # Get Memory
+          Get-CimInstance -Class Win32_physicalMemory
+          # And Get CPU
+          Get-CimInstance -Class Win32_Processor
+
+      - name: install pip requirements
+        run: |
+          # ((Test-Path "$($env:ProgramData)\chocolatey\choco.exe"));# if ($? -eq $true) {echo asdfasdf}choco install pip
+          pip install -r requirements.txt
+
+      # - name: Install PS Modules
+      #   run: |
+      #     # Set-PSRepository PSGallery -InstallationPolicy Trusted
+      #     # Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+      #     Install-PackageProvider -Name NuGet -Force
+      #     Install-Module -Name NtObjectManager -Force -Scope CurrentUser
+      #     Set-GlobalSymbolResolver -DbgHelpPath 'C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\dbghelp.dll'
+
+      - name: Generate Proc Info
+        run: |
+          # start as many things as possible
+          Get-Service | % { start-job -name $_.Name -ArgumentList ($_) -ScriptBlock { PARAM($service); echo $service.Name; Start } }   
+          Get-Job
+          sleep 30
+          .\gen_process.ps1 ${{ matrix.os }}
+
+      # - if: ${{ matrix.paths }}
+      - name: Generate System32 Program Files VersionInfo
+        run: |
+          .\get_verinfo.ps1 ${{ matrix.os }} all 200
+
+      # Upload Artifacts
+      - name: Upload VersionInfo Json
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: version-info-json
+          path: ./*.tar.gz
+          retention-days: 5
+
+  # collect-files:
   #   strategy:
   #     matrix:
   #       os: [windows-2019, windows-2022]
@@ -81,19 +83,19 @@ jobs:
   #         $bin_types = "*.exe","*.dll","*.sys","*.winmd","*.cpl","*.ax","*.node","*.ocx","*.efi","*.acm","*.scr","*.tsp","*.drv"
   #         $allpaths_to_scan = "C:\Program*\Mi*","C:\Program*\Win*", "C:\Windows\System32\", "C:\Program*\Common*"
   #         $all_files = Get-ChildItem $allpaths_to_scan -Include $bin_types -Recurse -ErrorAction SilentlyContinue
-  #         $all_files_tar_path = "${{ matrix.os }}-${ver}-versioninfo.json.tar.gz"     
-  #         # write file paths to list     
+  #         $all_files_tar_path = "${{ matrix.os }}-${ver}-versioninfo.json.tar.gz"
+  #         # write file paths to list
   #         $all_files | select -ExpandProperty fullname | Out-File all_paths.txt
   #         echo taring $all_files.Count
   #         # tar all the things
   #         tar -czf $all_files_tar_path -T all_paths.txt
 
   #     - name: Upload files
-  #       uses: actions/upload-artifact@v3        
+  #       uses: actions/upload-artifact@v3
   #       with:
   #         name: all_files
   #         path: ./*json.tar.gz
-  #         retention-days: 5 
+  #         retention-days: 5
 
   gen-com-info:
     strategy:
@@ -101,7 +103,7 @@ jobs:
         os: [windows-2019, windows-2022]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-        
+
     steps:
       - name: gen com
         run: |
@@ -110,8 +112,8 @@ jobs:
           tar -czf ($com_json_path + '.tar.gz') $com_json_path
 
       - name: Upload files
-        uses: actions/upload-artifact@v3        
+        uses: actions/upload-artifact@v3
         with:
           name: com_info
           path: ./*tar.gz
-          retention-days: 5 
+          retention-days: 5
