@@ -51,7 +51,7 @@ jobs:
         run: |
           # start as many things as possible
           $skip = ,"McpManagementService"
-          Get-Service | % { start-job -name $_.Name -ArgumentList ($_) -ScriptBlock { PARAM($service); echo $service.Name; if $skip.Contains($service.Name) { continue }; Start-Service $service} }   
+          Get-Service | % { start-job -name $_.Name -ArgumentList @($_, $skip) -ScriptBlock { $service=$args[0];$skip=$args[1]; echo $service.Name; if ($skip.Contains($service.Name)) { continue }; Start-Service $service} }   
           Get-Job
           sleep 30
           .\gen_process.ps1 ${{ matrix.os }}
