@@ -50,7 +50,7 @@ jobs:
     - name: Generate Proc Info
       run: |
         # start as many things as possible
-        Get-Service | Start-Service        
+        Get-Service | Start-Service  -ea SilentlyContinue
         .\gen_process.ps1 ${{ matrix.os }} 
    
     # - if: ${{ matrix.paths }}
