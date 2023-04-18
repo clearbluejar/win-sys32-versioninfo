@@ -7,42 +7,65 @@ $init_funcs = {
     function test1() {
         return 0
     }
+    
+
 
 }
 
-
-$allpaths_to_scan = "C:\Windows\System32\spool", "C:\Program Files (x86)\Mi*", "C:\Program Files (x86)\Win*" #, "C:\Program Files\Mi*", "C:\Program Files\Win*", "C:\Program*\Common*"
+$allpaths_to_scan = "C:\Windows\System32\spool", "C:\Program Files (x86)\Mi*" # , "C:\Program Files (x86)\Win*" #, "C:\Program Files\Mi*", "C:\Program Files\Win*", "C:\Program*\Common*"
+#$allpaths_to_scan = "C:\Windows\System32\spool"
 $bin_types = "*.exe", "*.dll", "*.sys", "*.winmd", "*.cpl", "*.ax", "*.node", "*.ocx", "*.efi", "*.acm", "*.scr", "*.tsp", "*.drv"
 $cpu_count = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
 $has_getrpc = (Get-Command 'Get-RpcServer' -errorAction SilentlyContinue)
+
 # clear jobs
 Remove-Job -Force *
 
+$all_files = gci -Recurse -Depth 0 -include $bin_types $allpaths_to_scan -ErrorAction SilentlyContinue | select  Name, VersionInfo, DirectoryName, PSPath, FullName
 
-foreach ($path in $allpaths_to_scan ) {
+$job_file_count = [math]::Max(2000, $all_files.Count)
+$max_jobs = 4 * $cpu_count
+$min_jobs = $cpu_count * 2
+$num_jobs = [math]::Ceiling($all_files.count / $job_file_count)
+
+$num_jobs = [math]::Max($min_jobs,$num_jobs)
+
+$job_file_count = [math]::Ceiling($all_files.count / $num_jobs)
+
+Write-Host Max jobs: $max_jobs
+Write-Host Num jobs: $num_jobs
+Write-Host Job file count : $job_file_count
+
+for ($i=0; $i -lt $num_jobs; $i++)
+{
+    [int]$StartRow = ($i * $job_file_count)
+    [int]$EndRow=(($i+1) * $job_file_count - 1)
+    $rows_string = "Rows {0} to {1}" -f $StartRow.ToString(),$EndRow.ToString()
+    write-host ($rows_string)
+    write-host Starting 
+
+    $running = @(Get-Job | Where-Object { $_.State -eq 'Running' })
+    Write-Host Jobs running count: $running.Count
     
+    if ($running.Count -ge $max_jobs) {
+        Write-Host waiting to start next job...
+        $running | Wait-Job -Any | Out-Null
+    }
 
-    # $running = @(Get-Job | Where-Object { $_.State -eq 'Running' })
-    # Write-Host Jobs runing count: $running.Count
-    # if ($running.Count -ge $cpu_count) {
-    #     Write-Host waiting to start next job...
-    #     $running | Wait-Job -Any | Out-Null
-    # }
-
-    Write-Host "Starting job for $path"
-    Start-Job  -InitializationScript $init_funcs {
-        # do something with $using:server. Just sleeping for this example.
-        $all_files = gci -Recurse -Depth 0 -include $using:bin_types $using:path -ErrorAction SilentlyContinue | select  Name, VersionInfo, DirectoryName, PSPath, FullName
-
+    Start-Job  -ArgumentList (,$all_files[$StartRow..$EndRow]) -InitializationScript $init_funcs {
+        #PARAM ($arguments)
+        
+        $files = $args[0]
         $count = 0        
+        
         $jsonBase = @{}        
 
-        $paths_processed = @()
-        foreach ($file in $all_files) {
+        $paths_processed = [System.Collections.ArrayList]@()
+        foreach ($file in $files) {
 
             $count++
             #Write-Host $file.FullName
-            $complete = (($count / $all_files.Count) * 100)
+            $complete = (($count / $files.Count) * 100)
             #     Write-Host complete '%' $complete
             
           
@@ -58,10 +81,11 @@ foreach ($path in $allpaths_to_scan ) {
                     continue
                 }
 
-                Write-Host $key
+                #Write-Host $key
                 $acl = $file | Get-Acl                 
                 $acl = $acl | Select-Object Owner, Group, Sddl, AccessToString, Audit
-                $is_parent_user_writeable = isWriteableByIdentStr (($file.DirectoryName | Get-Acl).Access) ".*USERS|EVERYONE"
+                $parent_access = ($file.DirectoryName | Get-Acl)
+                $is_parent_user_writeable = isWriteableByIdentStr ($parent_access).Access ".*USERS|EVERYONE"
                     
                 if ($has_getrpc) {
                     if (-Not $skip_rpc_files.contains($file.Name)) {
@@ -80,31 +104,43 @@ foreach ($path in $allpaths_to_scan ) {
                 $file_data.Add("parentfolder", $file.Directory.fullname)
                 $file_data.Add("Name", $file.Name)     
                 
-                
+                $paths_processed.Add($file.FullName)
                 $jsonBase.Add($key, $file_data)
 
             }
 
-            if ($count -gt 105) {
-                break
-            }
-            
-            Write-Progress -Activity $using:path -Status hi -PercentComplete $complete
+           
+            Write-Progress -Activity 'File' -Status 'Processing...' -PercentComplete $complete
             
         }
 
-
+        write-host $jsonBase.Count
         return  $jsonBase
 
     } | Out-Null
-}
+
+
+} 
+
+
+Get-Job
 
 $running = @(Get-Job | Where-Object { $_.State -eq 'Running' })
 Write-Host Waiting for all $running.Count jobs...
+
+# #Monitor all running jobs in the current sessions until they are complete
+# #Call our custom WriteJobProgress function for each job to show progress. Sleep 1 second and check again
+while((Get-Job | Where-Object {$_.State -ne "Completed"}).Count -gt 0)
+{    
+    Get-Job  
+    Write-Host Jobs complete ((Get-Job | Where-Object {$_.State -ne "Completed"}).Count / $running.Count)
+    Start-Sleep -Seconds 5
+    
+}
+
 # Wait for all jobs to complete and results ready to be received
 Wait-Job * | Out-Null
 
-$jsonBase = @{}
 $mergedJson = @{}
 # Process the results
 foreach ($job in Get-Job) {
@@ -113,7 +149,24 @@ foreach ($job in Get-Job) {
     Write-Host jobid: $job.id
     Write-Host files count: $json.Count
 
-    $mergedJson += $json   
+    $skipped = 0
+    $added = 0
+    foreach ($key in $json.Keys) 
+    {        
+        
+        if ($mergedJson.ContainsKey($key)) {            
+            $skipped += 1
+            continue
+        }
+        else {
+            $mergedJson.Add($key,$json.$key)
+            $added += 1
+        }       
+
+        
+    }
+    
+    Write-Host Added: $json.Count
 
 }
 
@@ -122,24 +175,3 @@ Remove-Job -State Completed
 write-host $mergedJson.Count
 
 $mergedJson | ConvertTo-Json | Out-File para.json
-
-#1..1000 | ForEach-Object -Parallel { "Hello: $_" } 
-
-# This *is* guaranteed to work because the passed in concurrent dictionary object is thread safe
-# $threadSafeDictionary = [System.Collections.Concurrent.ConcurrentDictionary[string,object]]::new()
-
-# $allpaths_to_scan | ForEach-Object -Parallel {
-#     $dict = $using:threadSafeDictionary
-    
-#     $files = gci $_ -Depth 1
-
-#     foreach ($file in $files) {
-#         echo $file.FullName
-#         $dict.TryAdd($file.FullName, $file.CreationTime)
-#     }
-
-    
-    
-# }
-
-# echo $dict

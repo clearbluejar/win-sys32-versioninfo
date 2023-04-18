@@ -101,8 +101,7 @@ $count = 0
 Remove-Job -Force *
 
 foreach ($path in $allpaths_to_scan) {
-
-  Start-Job  {
+  Start-Job -Name $path {
       gci -Recurse -include $using:bin_types $using:path -ErrorAction SilentlyContinue | select  Name, VersionInfo, DirectoryName, PSPath, FullName      
   }
 }
@@ -112,11 +111,10 @@ Write-Host Waiting for all $running.Count jobs...
 $jobs_start = $(get-date)
 while(($now_running = (Get-Job | Where-Object {$_.State -ne "Completed"}).Count) -gt 0)
 {    
-    Get-Job | Where-Object { $_.State -eq 'Running' }
-    
-    Write-Host Jobs complete $now_running  / $running.Count
-    Write-Host Time since for file proc jobs.. ($(get-date) - $jobs_start)
-    Start-Sleep -Seconds 5
+    Get-Job    
+    Write-Host Jobs left $now_running / $running.Count
+    Write-Host Time since for gci jobs.. ($(get-date) - $jobs_start)
+    Start-Sleep -Seconds 10
 }
 $jobs_end = $(get-date)
 
@@ -124,6 +122,9 @@ $jobs_end = $(get-date)
 Wait-Job * | Out-Null
 
 $all_files = Receive-Job *
+
+# clear jobs
+Remove-Job -Force *
 
 #$all_files = gci -Recurse -include $bin_types $allpaths_to_scan -ErrorAction SilentlyContinue | select  Name, VersionInfo, DirectoryName, PSPath, FullName
 
@@ -159,7 +160,7 @@ for ($i=0; $i -lt $num_jobs; $i++)
         $running | Wait-Job -Any | Out-Null
     }
 
-    Start-Job  -ArgumentList ($all_files[$StartRow..$EndRow],$limit) -InitializationScript $init_funcs {
+    Start-Job  -Name $rows_string -ArgumentList ($all_files[$StartRow..$EndRow],$limit) -InitializationScript $init_funcs {
         #PARAM ($arguments)
         
         $files = $args[0]
@@ -287,7 +288,7 @@ $proc_json_path = "${runner}-${ver}-proc.json"
 
 python .\enhance_verinfo.py $allverinfo_json_path $proc_json_path $allverinfo_json_enhanced_path
 
-Write-Host Wrote $jsonBase.Count objects
+Write-Host Wrote $mergedJson.Count objects
 Write-Host Wrote : $allverinfo_json_path 
 Write-Host Wrote : $allverinfo_json_enhanced_path
 Write-Host gci time: $gci_time
