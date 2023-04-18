@@ -50,7 +50,7 @@ jobs:
       - name: Generate Proc Info
         run: |
           # start as many things as possible
-          Get-Service | % { start-job -name $_.Name -ArgumentList ($_) -ScriptBlock { PARAM($service); echo $service.Name; Start } }   
+          Get-Service | % { start-job -name $_.Name -ArgumentList ($_) -ScriptBlock { PARAM($service); echo $service.Name; if $skip.Contains($service.Name) { continue }; Start-Service $service} }   
           Get-Job
           sleep 30
           .\gen_process.ps1 ${{ matrix.os }}
