@@ -88,7 +88,7 @@ jobs:
   gen-com-info:
     strategy:
       matrix:
-        os: [windows-2019, windows-2022, win10-o365,win2022-azure-roles]
+        os: [windows-2019, windows-2022, win11-o365,win2022-azure-roles]
       
       fail-fast: false
     runs-on: ${{ matrix.os }}
