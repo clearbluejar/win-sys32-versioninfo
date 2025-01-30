@@ -70,7 +70,9 @@ $limit = $args[2]
 
 $start_time = $(get-date)
 
-$ver = [System.Environment]::OSVersion.Version -join '.'
+#$ver = [System.Environment]::OSVersion.Version -join '.'
+$ver = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" | Select-Object -ExpandProperty LCUVer
+Write-Host "Version from LCUver: $ver"
 $bin_types = "*.exe", "*.dll", "*.sys", "*.winmd", "*.cpl", "*.ax", "*.node", "*.ocx", "*.efi", "*.acm", "*.scr", "*.tsp", "*.drv"
 
 if ($paths -eq $null -or $paths -eq "all") {
