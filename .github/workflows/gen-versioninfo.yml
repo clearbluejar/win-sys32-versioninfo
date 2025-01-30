@@ -96,6 +96,7 @@ jobs:
     runs-on: ${{ matrix.os }}
         
     steps:
+      - uses: actions/checkout@v4
       - name: gen com
         run: |
           $ver = .\get_ver.ps1
