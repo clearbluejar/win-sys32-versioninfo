@@ -71,8 +71,18 @@ $limit = $args[2]
 $start_time = $(get-date)
 
 #$ver = [System.Environment]::OSVersion.Version -join '.'
-$ver = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" | Select-Object -ExpandProperty LCUVer
-Write-Host "Version from LCUver: $ver"
+# $ver = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" | Select-Object -ExpandProperty LCUVer
+$ver = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+if ($ver.LCUVer) {
+    $ver = $ver.LCUVer
+} elseif ($ver.ReleaseId) {
+    $ver = $ver.ReleaseId
+} else {
+    $ver = "Property not found"
+}
+
+Write-Host "Version: $ver"
+
 $bin_types = "*.exe", "*.dll", "*.sys", "*.winmd", "*.cpl", "*.ax", "*.node", "*.ocx", "*.efi", "*.acm", "*.scr", "*.tsp", "*.drv"
 
 if ($paths -eq $null -or $paths -eq "all") {
