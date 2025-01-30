@@ -26,7 +26,7 @@ $has_getrpc = (Get-Command 'Get-RpcServer' -errorAction SilentlyContinue)
 $cpu_count = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
 $allpaths_to_scan = "C:\Windows\System32\", "C:\Program Files (x86)\Mi*", "C:\Program Files (x86)\Win*", "C:\Program Files\Mi*", "C:\Program Files\Win*", "C:\Program*\Common*"
 
-$ver = [System.Environment]::OSVersion.Version -join '.'
+$ver = .\get_ver.ps1
 $bin_types = "*.exe", "*.dll", "*.sys", "*.winmd", "*.cpl", "*.ax", "*.node", "*.ocx", "*.efi", "*.acm", "*.scr", "*.tsp", "*.drv"
 
 

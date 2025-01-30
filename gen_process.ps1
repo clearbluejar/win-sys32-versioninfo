@@ -1,6 +1,6 @@
 # create get-process json
 $runner=$args[0]
-$ver = [System.Environment]::OSVersion.Version -join '.'
+$ver = .\get_ver.ps1
 $procJsonBase = @{}
 $proc_json_path = "${runner}-${ver}-proc.json"
 $procs = Get-Process -IncludeUserName
