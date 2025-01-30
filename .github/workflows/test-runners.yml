@@ -1,4 +1,4 @@
-name: Test Run 20 - Generate Version Info
+name: Test Run (limit 5) - Generate Version Info
 
 on:
   workflow_dispatch:
@@ -61,7 +61,7 @@ jobs:
       # - if: ${{ matrix.paths }}
       - name: Generate System32 Program Files VersionInfo
         run: |
-          .\get_verinfo.ps1 ${{ matrix.os }} all 20
+          .\get_verinfo.ps1 ${{ matrix.os }} all 5
 
       # Upload Artifacts
       - name: Upload VersionInfo Json

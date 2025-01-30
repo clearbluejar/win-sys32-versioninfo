@@ -105,7 +105,12 @@ Remove-Job -Force *
 
 foreach ($path in $allpaths_to_scan) {
   Start-Job -Name $path {
-      gci -Recurse -include $using:bin_types $using:path -ErrorAction SilentlyContinue | select  Name, VersionInfo, DirectoryName, PSPath, FullName      
+      if ($limit) {
+        gci -Recurse -include $using:bin_types $using:path -ErrorAction SilentlyContinue | Select-Object -First 20 | select  Name, VersionInfo, DirectoryName, PSPath, FullName      
+      }
+      else {
+        gci -Recurse -include $using:bin_types $using:path -ErrorAction SilentlyContinue | select  Name, VersionInfo, DirectoryName, PSPath, FullName      
+      }
   }
 }
 
