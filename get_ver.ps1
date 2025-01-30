@@ -9,4 +9,4 @@ if ($ver.LCUVer) {
     $ver = "Property not found"
 }
 
-Write-Host $ver
+$ver
