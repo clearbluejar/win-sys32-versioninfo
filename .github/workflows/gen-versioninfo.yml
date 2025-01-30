@@ -100,7 +100,7 @@ jobs:
       - name: gen com
         run: |
           $ver = .\get_ver.ps1
-          $com_json_path = "${runner}-${ver}-com.json"
+          $com_json_path = "${{ matrix.os }}-${ver}-com.json"
           $all_com = Get-CimInstance -ClassName Win32_COMSetting | ? {$_.InprocServer32 -or $_.LocalServer32 } | ConvertTo-Json | Out-File $com_json_path
           tar -czf ($com_json_path + '.tar.gz') $com_json_path
 
