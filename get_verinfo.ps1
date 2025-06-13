@@ -196,38 +196,48 @@ for ($i=0; $i -lt $num_jobs; $i++)
                 continue
             }
             else {
-                $key = ($file | Get-FileHash).Hash
 
-                if ($jsonBase.ContainsKey($key)) {
-                    Write-Host Skipping $file.FullName .. already added
+                  # Inside your job script, add error handling:
+                  try {
+                          # existing file access code, e.g.
+                          $key = ($file | Get-FileHash).Hash
+                  
+                          if ($jsonBase.ContainsKey($key)) {
+                              Write-Host Skipping $file.FullName .. already added
+                              continue
+                          }
+          
+                          #Write-Host $key
+                          $acl = $file | Get-Acl                 
+                          $acl = $acl | Select-Object Owner, Group, Sddl, AccessToString, Audit
+                          $parent_access = ($file.DirectoryName | Get-Acl)
+                          $is_parent_user_writeable = isWriteableByIdentStr ($parent_access).Access ".*USERS|EVERYONE"
+                              
+                          if ($has_getrpc) {
+                              if (-Not $skip_rpc_files.contains($file.Name)) {
+                                  $rpc_server = $file | Get-RpcServer
+                                  $rpc_info = $rpc_server | select InterfaceId, InterfaceVersion, TransferSyntaxId, TransferSyntaxVersion, ProcedureCount, Server, Name, ServiceName, ServiceDisplayName, IsServiceRunning, Endpoints, EndpointCount, Client 
+                                  $rpc_procs = $rpc_server | Select-Object -ExpandProperty Procedures | select Name
+                                  $rpc_info | Add-Member -MemberType NoteProperty -Name "Procedures" -Value $procs.Name
+                              }
+                          }
+                      
+                          $file_data = @{}        
+                          $file_data.Add("VersionInfo", $file.VersionInfo)
+                          $file_data.Add("acl", $acl)
+                          $file_data.Add("rpc", $rpc_info)
+                          $file_data.Add("isparentuserwriteable", $is_parent_user_writeable)
+                          $file_data.Add("parentfolder", $file.Directory.fullname)
+                          $file_data.Add("Name", $file.Name)     
+                          
+                          $paths_processed.Add($file.FullName)
+                          $jsonBase.Add($key, $file_data)
+                }
+                catch {
+                    Write-Host "Error accessing file: $_"
                     continue
-                }
+                }            
 
-                #Write-Host $key
-                $acl = $file | Get-Acl                 
-                $acl = $acl | Select-Object Owner, Group, Sddl, AccessToString, Audit
-                $parent_access = ($file.DirectoryName | Get-Acl)
-                $is_parent_user_writeable = isWriteableByIdentStr ($parent_access).Access ".*USERS|EVERYONE"
-                    
-                if ($has_getrpc) {
-                    if (-Not $skip_rpc_files.contains($file.Name)) {
-                        $rpc_server = $file | Get-RpcServer
-                        $rpc_info = $rpc_server | select InterfaceId, InterfaceVersion, TransferSyntaxId, TransferSyntaxVersion, ProcedureCount, Server, Name, ServiceName, ServiceDisplayName, IsServiceRunning, Endpoints, EndpointCount, Client 
-                        $rpc_procs = $rpc_server | Select-Object -ExpandProperty Procedures | select Name
-                        $rpc_info | Add-Member -MemberType NoteProperty -Name "Procedures" -Value $procs.Name
-                    }
-                }
-            
-                $file_data = @{}        
-                $file_data.Add("VersionInfo", $file.VersionInfo)
-                $file_data.Add("acl", $acl)
-                $file_data.Add("rpc", $rpc_info)
-                $file_data.Add("isparentuserwriteable", $is_parent_user_writeable)
-                $file_data.Add("parentfolder", $file.Directory.fullname)
-                $file_data.Add("Name", $file.Name)     
-                
-                $paths_processed.Add($file.FullName)
-                $jsonBase.Add($key, $file_data)
 
             }
 
