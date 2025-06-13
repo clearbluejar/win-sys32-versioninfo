@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         #os: [windows-2019, windows-2022, win11-o365,win2022-azure-roles]
-        os: [windows-2019, windows-2022]
+        os: [windows-2019, windows-2022, windows-2025]
       fail-fast: false
     runs-on: ${{ matrix.os }}
 
@@ -90,7 +90,7 @@ jobs:
     strategy:
       matrix:
         #os: [windows-2019, windows-2022, win11-o365,win2022-azure-roles]
-        os: [windows-2019, windows-2022]
+        os: [windows-2019, windows-2022, windows-2025]
       
       fail-fast: false
     runs-on: ${{ matrix.os }}
